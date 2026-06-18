@@ -1,0 +1,108 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tradepilot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tradepilot_ai
+      POSTGRES_USER: tradepilot
+      POSTGRES_PASSWORD: tradepilot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tradepilot -d tradepilot_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend.dev
+    container_name: tradepilot-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      FLASK_ENV: development
+      DEVELOPMENT_MODE: "true"
+      DEV_USERNAME: ${DEV_USERNAME:-ilyanozary}
+      DEV_PASSWORD: ${DEV_PASSWORD:-ilyalm10}
+      SECRET_KEY: ${SECRET_KEY:-change-me}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-too}
+      DATABASE_URL: postgresql+psycopg://tradepilot:tradepilot@postgres:5432/tradepilot_ai
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      USDT_TRC20_WALLET_ADDRESS: ${USDT_TRC20_WALLET_ADDRESS:-}
+      MARKET_DATA_PROVIDER: ${MARKET_DATA_PROVIDER:-bitunix}
+      BITUNIX_FUTURES_BASE_URL: ${BITUNIX_FUTURES_BASE_URL:-https://fapi.bitunix.com}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      LIVE_TRADING_API_ENABLED: ${LIVE_TRADING_API_ENABLED:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      PAPER_TRADING_INITIAL_BALANCE: ${PAPER_TRADING_INITIAL_BALANCE:-10000}
+      PAPER_TRADING_DEFAULT_LEVERAGE: ${PAPER_TRADING_DEFAULT_LEVERAGE:-1}
+      PAPER_CONFIDENCE_THRESHOLD: ${PAPER_CONFIDENCE_THRESHOLD:-70}
+      RUN_MIGRATIONS: "true"
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+
+  paper-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend.dev
+    container_name: tradepilot-paper-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    environment:
+      FLASK_ENV: development
+      DEVELOPMENT_MODE: "true"
+      DEV_USERNAME: ${DEV_USERNAME:-ilyanozary}
+      DEV_PASSWORD: ${DEV_PASSWORD:-ilyalm10}
+      SECRET_KEY: ${SECRET_KEY:-development-secret-key-change-later}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-development-jwt-secret-key-change-later}
+      DATABASE_URL: postgresql+psycopg://tradepilot:tradepilot@postgres:5432/tradepilot_ai
+      MARKET_DATA_PROVIDER: ${MARKET_DATA_PROVIDER:-bitunix}
+      BITUNIX_FUTURES_BASE_URL: ${BITUNIX_FUTURES_BASE_URL:-https://fapi.bitunix.com}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      LIVE_TRADING_API_ENABLED: ${LIVE_TRADING_API_ENABLED:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      PAPER_TRADING_INITIAL_BALANCE: ${PAPER_TRADING_INITIAL_BALANCE:-10000}
+      PAPER_TRADING_DEFAULT_LEVERAGE: ${PAPER_TRADING_DEFAULT_LEVERAGE:-1}
+      PAPER_CONFIDENCE_THRESHOLD: ${PAPER_CONFIDENCE_THRESHOLD:-70}
+      RUN_MIGRATIONS: "false"
+    volumes:
+      - .:/app
+    command: ["flask", "--app", "run.py", "paper-engine", "run-worker", "--tick-seconds", "2", "--analysis-seconds", "30"]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend.dev
+    container_name: tradepilot-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5000}
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - frontend_node_modules:/app/node_modules
+      - frontend_next_cache:/app/.next
+
+volumes:
+  postgres_data:
+  frontend_node_modules:
+  frontend_next_cache:

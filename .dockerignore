@@ -1,0 +1,15 @@
+.git
+.next
+.next-local
+.venv
+__pycache__
+*.pyc
+node_modules
+npm-debug.log
+.env
+.env.local
+.env.*.local
+instance
+.pytest_cache
+.mypy_cache
+.DS_Store
