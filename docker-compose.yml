@@ -50,6 +50,12 @@ services:
       - "5000:5000"
     volumes:
       - .:/app
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/api/subscriptions/plans', timeout=5).getcode() == 200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   paper-worker:
     build:
@@ -82,7 +88,7 @@ services:
       RUN_MIGRATIONS: "false"
     volumes:
       - .:/app
-    command: ["flask", "--app", "run.py", "paper-engine", "run-worker", "--tick-seconds", "2", "--analysis-seconds", "30"]
+    command: ["sh", "-c", "until python -c \"import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://backend:5000/api/subscriptions/plans', timeout=5).getcode() == 200 else 1)\"; do echo 'Waiting for backend readiness...'; sleep 2; done; flask --app run.py paper-engine run-worker --tick-seconds 2 --analysis-seconds 30"]
 
   frontend:
     build:
