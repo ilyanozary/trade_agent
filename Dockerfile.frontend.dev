@@ -1,10 +1,16 @@
 FROM node:20-alpine
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV npm_config_audit=false
+ENV npm_config_fund=false
+ENV npm_config_update_notifier=false
+ENV npm_config_fetch_retries=5
+ENV npm_config_fetch_retry_maxtimeout=120000
 
 WORKDIR /opt/frontend_deps
 COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps \
+RUN npm install -g npm@11.17.0 \
+  && npm ci --legacy-peer-deps --no-audit --no-fund \
   && test -x node_modules/.bin/next
 
 WORKDIR /app
