@@ -3,6 +3,7 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
 RUN npm ci --legacy-peer-deps
+RUN cp -a node_modules /opt/frontend_node_modules
 COPY . .
 COPY docker/frontend-entrypoint.sh /usr/local/bin/frontend-entrypoint.sh
 RUN chmod +x /usr/local/bin/frontend-entrypoint.sh
