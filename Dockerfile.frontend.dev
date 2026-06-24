@@ -4,7 +4,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
 RUN npm ci --legacy-peer-deps
 COPY . .
-RUN chmod +x docker/frontend-entrypoint.sh
+COPY docker/frontend-entrypoint.sh /usr/local/bin/frontend-entrypoint.sh
+RUN chmod +x /usr/local/bin/frontend-entrypoint.sh
 EXPOSE 3000
-ENTRYPOINT ["docker/frontend-entrypoint.sh"]
+ENTRYPOINT ["frontend-entrypoint.sh"]
 CMD ["npm", "run", "dev", "--", "-H", "0.0.0.0"]
