@@ -67,7 +67,7 @@ services:
       postgres:
         condition: service_healthy
       backend:
-        condition: service_started
+        condition: service_healthy
     environment:
       FLASK_ENV: development
       DEVELOPMENT_MODE: "true"
