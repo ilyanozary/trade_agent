@@ -1,12 +1,17 @@
 FROM node:20-alpine
-WORKDIR /app
+
 ENV NEXT_TELEMETRY_DISABLED=1
+
+WORKDIR /opt/frontend_deps
 COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps
-RUN cp -a node_modules /opt/frontend_node_modules
+RUN npm ci --legacy-peer-deps \
+  && test -x node_modules/.bin/next
+
+WORKDIR /app
 COPY . .
 COPY docker/frontend-entrypoint.sh /usr/local/bin/frontend-entrypoint.sh
 RUN chmod +x /usr/local/bin/frontend-entrypoint.sh
+
 EXPOSE 3000
 ENTRYPOINT ["frontend-entrypoint.sh"]
 CMD ["npm", "run", "dev", "--", "-H", "0.0.0.0"]
