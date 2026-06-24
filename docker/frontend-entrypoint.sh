@@ -1,11 +1,15 @@
 #!/bin/sh
 set -e
 
-if [ ! -x node_modules/.bin/next ]; then
-  echo "Frontend dependencies are missing in mounted node_modules; restoring from image cache..."
-  mkdir -p node_modules
-  find node_modules -mindepth 1 -maxdepth 1 -exec rm -rf {} +
-  cp -a /opt/frontend_node_modules/. node_modules/
+if [ ! -x /opt/frontend_node_modules/.bin/next ]; then
+  echo "Frontend dependency cache is missing; rebuilding it..."
+  npm ci --legacy-peer-deps
+  rm -rf /opt/frontend_node_modules
+  cp -a node_modules /opt/frontend_node_modules
 fi
 
+rm -rf node_modules
+ln -s /opt/frontend_node_modules node_modules
+
+export PATH="/opt/frontend_node_modules/.bin:$PATH"
 exec "$@"
